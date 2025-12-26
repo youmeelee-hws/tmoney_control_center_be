@@ -29,7 +29,10 @@ tmoney_control_center_be/
 │               ├── ping.py     # 헬스체크 엔드포인트
 │               └── streams.py  # 스트리밍 관리 엔드포인트
 ├── requirements.txt            # Python 의존성 목록
-├── .env                        # 환경 변수 (git ignored)
+├── .env.local                  # 로컬 환경 변수 (git ignored)
+├── .env.dev                    # 개발 환경 변수 (git ignored)
+├── .env.staging                # 스테이징 환경 변수 (git ignored)
+├── .env.prod                   # 프로덕션 환경 변수 (git ignored)
 ├── .gitignore
 └── README.md
 ```
@@ -67,30 +70,65 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 5. 환경 변수 설정 (선택사항)
+### 5. 환경 변수 설정
 
-`.env` 파일을 생성하여 환경 변수를 설정할 수 있습니다:
+프로젝트는 환경별로 분리된 설정 파일을 사용합니다:
+
+- `.env.local` - 로컬 개발 환경
+- `.env.dev` - 개발 서버 환경
+- `.env.staging` - 스테이징 환경
+- `.env.prod` - 프로덕션 환경
+
+각 환경에 맞는 `.env` 파일을 생성하세요:
 
 ```bash
-# .env 파일 예시
+# .env.local 예시
 APP_NAME=tmoney_control_center_backend
 API_V1_PREFIX=/api/v1
+APP_ENV=local
 MEDIAMTX_BASE_URL=http://localhost:8889
+```
+
+```bash
+# .env.prod 예시
+APP_NAME=tmoney_control_center_backend
+API_V1_PREFIX=/api/v1
+APP_ENV=prod
+MEDIAMTX_BASE_URL=http://production-mediamtx-server:8889
 ```
 
 ### 6. 서버 실행
 
-#### 개발 모드 (Hot Reload)
+환경에 따라 `ENV` 환경변수를 설정하여 실행합니다:
+
+#### 로컬 개발 모드 (Hot Reload)
+
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+ENV=local uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+#### 개발 서버
+
+```bash
+ENV=dev uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+#### 스테이징 서버
+
+```bash
+ENV=staging uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 #### 프로덕션 모드
+
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+ENV=prod uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
+> **참고**: `ENV` 환경변수를 지정하지 않으면 기본적으로 `local` 환경으로 실행됩니다.
+
 서버가 시작되면 다음 URL에서 접근 가능합니다:
+
 - API 서버: http://localhost:8000
 - API 문서 (Swagger): http://localhost:8000/docs
 - API 문서 (ReDoc): http://localhost:8000/redoc
@@ -100,7 +138,9 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ### 기본 엔드포인트
 
 #### `GET /`
+
 서버 상태 확인
+
 ```json
 {
   "name": "tmoney_control_center_backend",
@@ -111,7 +151,9 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ### 헬스체크
 
 #### `GET /api/v1/ping`
+
 서버 헬스체크
+
 ```json
 {
   "ok": true,
@@ -122,12 +164,15 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ### 스트리밍 관리
 
 #### `POST /api/v1/streams/{stream_id}/play-ticket`
+
 스트림 재생 티켓 발급
 
 **요청:**
+
 - Path Parameter: `stream_id` (string)
 
 **응답:**
+
 ```json
 {
   "stream_id": "stream123",
@@ -145,17 +190,33 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 
 ### 환경 변수
 
-| 변수명 | 기본값 | 설명 |
-|--------|--------|------|
-| `APP_NAME` | `tmoney_control_center_backend` | 애플리케이션 이름 |
-| `API_V1_PREFIX` | `/api/v1` | API v1 경로 prefix |
-| `MEDIAMTX_BASE_URL` | `http://localhost:8889` | MediaMTX 서버 URL |
+#### 환경 파일 설정
+
+프로젝트는 `ENV` 환경변수를 통해 다른 설정 파일을 로드합니다:
+
+```bash
+ENV=local   → .env.local 파일 로드
+ENV=dev     → .env.dev 파일 로드
+ENV=staging → .env.staging 파일 로드
+ENV=prod    → .env.prod 파일 로드
+```
+
+#### 사용 가능한 환경 변수
+
+| 변수명              | 기본값                          | 설명                               |
+| ------------------- | ------------------------------- | ---------------------------------- |
+| `ENV`               | `local`                         | 실행 환경 (시스템 환경변수로 설정) |
+| `APP_NAME`          | `tmoney_control_center_backend` | 애플리케이션 이름                  |
+| `API_V1_PREFIX`     | `/api/v1`                       | API v1 경로 prefix                 |
+| `APP_ENV`           | `local`                         | 애플리케이션 환경 표시             |
+| `MEDIAMTX_BASE_URL` | `http://localhost:8889`         | MediaMTX 서버 URL                  |
 
 ## 🔧 개발
 
 ### 의존성 추가
 
 새로운 패키지 설치 후 requirements.txt 업데이트:
+
 ```bash
 pip install <package-name>
 pip freeze > requirements.txt
@@ -181,6 +242,7 @@ mypy app/
 ### Import 오류
 
 가상환경이 활성화되어 있는지 확인:
+
 ```bash
 which python  # venv 경로가 표시되어야 함
 ```
@@ -188,6 +250,7 @@ which python  # venv 경로가 표시되어야 함
 ### 포트 충돌
 
 8000번 포트가 이미 사용 중인 경우 다른 포트 사용:
+
 ```bash
 uvicorn app.main:app --reload --port 8001
 ```
@@ -208,4 +271,3 @@ uvicorn app.main:app --reload --port 8001
 ## 👥 기여
 
 (기여 가이드라인을 여기에 명시)
-

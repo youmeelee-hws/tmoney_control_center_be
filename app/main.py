@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.routes import api_router
 
+print(f"ENV = {settings.APP_ENV}")
+
 app = FastAPI(title=settings.APP_NAME)
 
 # 개발 편의용 (운영에서는 origin 제한 권장)
