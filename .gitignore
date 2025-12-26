@@ -4,7 +4,6 @@ env/
 ENV/
 
 # Environment variables
-.env
 .env.local
 .env.dev
 .env.staging
