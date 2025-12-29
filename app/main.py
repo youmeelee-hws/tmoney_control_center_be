@@ -2,10 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.routes import api_router
+from app.middlewares.auth import ApiV1AuthMiddleware
 
 print(f"ENV = {settings.APP_ENV}")
 
 app = FastAPI(title=settings.APP_NAME)
+
+# 인증 미들웨어 추가
+app.add_middleware(ApiV1AuthMiddleware)
 
 # 개발 편의용 (운영에서는 origin 제한 권장)
 app.add_middleware(

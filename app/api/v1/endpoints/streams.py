@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -5,14 +6,57 @@ import secrets
 
 router = APIRouter(tags=["streams"])
 
-class PlayTicketResponse(BaseModel):
-    stream_id: str
-    token: str
-    expires_at: str  # ISO string (지금은 더미)
+"""
+{
+  "streams": [
+    {
+      "id": "cam-001",
+      "name": "Gate 1",
+      "status": "unknown",
+      "capabilities": {
+        "live": true,
+        "record": false
+      }
+    },
+    ...
+  ]
+}
+"""
+class StreamResponse(BaseModel):
+    id: str
+    name: str
+    status: str
 
-@router.post("/streams/{stream_id}/play-ticket", response_model=PlayTicketResponse)
-def issue_play_ticket(stream_id: str) -> PlayTicketResponse:
-    # TODO(나중): 로그인/권한 확인 + 짧은 토큰 발급 로직으로 교체
-    token = secrets.token_urlsafe(24)
-    expires_at = (datetime.utcnow() + timedelta(minutes=5)).isoformat() + "Z"
-    return PlayTicketResponse(stream_id=stream_id, token=token, expires_at=expires_at)
+class StreamListResponse(BaseModel):
+    streams: List[StreamResponse]
+
+@router.get("/streams", response_model=StreamListResponse)
+def get_stream_list() -> StreamListResponse:
+    # 토큰 체크 # TODO 나중에 인증 구현 후 JWT 토큰 유효성 검증으로 대치
+    
+    streams = [
+        StreamResponse(id="cam-001", name="Gate-01", status="unknown"),
+    ]
+
+    return StreamListResponse(streams=streams)
+
+"""
+{
+  "streamId": "cam-001",
+  "playTicket": "ptk_abc123",
+  "expiresAt": "2025-12-26T11:30:00+09:00",
+  "whepUrl": "https://media.example.local/whep/cam-001"
+}
+"""
+class PlayTicketResponse(BaseModel):
+    streamId: str
+    playTicket: str
+    expiresAt: str  # ISO string (지금은 더미)
+    whepUrl: str
+
+@router.post("/streams/{streamId}/play-ticket", response_model=PlayTicketResponse)
+def issue_play_ticket(streamId: str) -> PlayTicketResponse:
+    expiresAt = (datetime.utcnow() + timedelta(minutes=5)).isoformat() + "Z"
+    playTicket="ptk_abc123" # TODO 나중에 실제 티켓 발급 로직으로 대치
+    whepUrl="https://media.stub.local/whep/" + streamId # TODO 나중에 실제 미디어 서버 URL로 대치
+    return PlayTicketResponse(streamId=streamId, playTicket=playTicket, expiresAt=expiresAt, whepUrl=whepUrl)
