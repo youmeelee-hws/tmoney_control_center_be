@@ -56,7 +56,7 @@ class PlayTicketResponse(BaseModel):
 
 @router.post("/streams/{streamId}/play-ticket", response_model=PlayTicketResponse)
 def issue_play_ticket(streamId: str) -> PlayTicketResponse:
-    expiresAt = (datetime.utcnow() + timedelta(minutes=5)).isoformat() + "Z"
+    expiresAt = (datetime.utcnow() + timedelta(minutes=30)).isoformat() + "Z"
     playTicket="ptk_abc123" # TODO 나중에 실제 티켓 발급 로직으로 대치
     whepUrl="https://media.stub.local/whep/" + streamId # TODO 나중에 실제 미디어 서버 URL로 대치
     return PlayTicketResponse(streamId=streamId, playTicket=playTicket, expiresAt=expiresAt, whepUrl=whepUrl)
