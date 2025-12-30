@@ -36,6 +36,9 @@ def get_stream_list() -> StreamListResponse:
     
     streams = [
         StreamResponse(id="cam-001", name="Gate-01", status="unknown"),
+        StreamResponse(id="cam-002", name="Gate-02", status="unknown"),
+        StreamResponse(id="cam-003", name="Gate-03", status="unknown"),
+        StreamResponse(id="cam-004", name="Gate-04", status="unknown"),
     ]
 
     return StreamListResponse(streams=streams)
