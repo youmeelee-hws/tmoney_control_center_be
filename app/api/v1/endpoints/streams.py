@@ -1,65 +1,129 @@
 from typing import List
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 import secrets
 
-router = APIRouter(tags=["streams"])
+from app.mock_data import (
+    get_all_stations,
+    get_station_by_id,
+    get_gates_by_station,
+    get_gate_by_id,
+    get_streams_by_gate,
+    get_stream_by_id,
+)
 
-"""
-{
-  "streams": [
-    {
-      "id": "cam-001",
-      "name": "Gate 1",
-      "status": "unknown",
-      "capabilities": {
-        "live": true,
-        "record": false
-      }
-    },
-    ...
-  ]
-}
-"""
+router = APIRouter(tags=["stations"])
+
+# ============================================
+# Stations API
+# ============================================
+
+class StationResponse(BaseModel):
+    stationId: str
+    name: str
+
+class StationListResponse(BaseModel):
+    stations: List[StationResponse]
+
+@router.get("/stations", response_model=StationListResponse)
+def get_stations() -> StationListResponse:
+    """Get all stations"""
+    stations = get_all_stations()
+    return StationListResponse(
+        stations=[
+            StationResponse(stationId=s.station_id, name=s.name)
+            for s in stations
+        ]
+    )
+
+# ============================================
+# Gates API
+# ============================================
+
+class GateResponse(BaseModel):
+    gateId: str
+    stationId: str
+    name: str
+
+class GateListResponse(BaseModel):
+    gates: List[GateResponse]
+
+@router.get("/stations/{stationId}/gates", response_model=GateListResponse)
+def get_station_gates(stationId: str) -> GateListResponse:
+    """Get all gates for a specific station"""
+    # Verify station exists
+    station = get_station_by_id(stationId)
+    if not station:
+        raise HTTPException(status_code=404, detail=f"Station {stationId} not found")
+    
+    gates = get_gates_by_station(stationId)
+    return GateListResponse(
+        gates=[
+            GateResponse(gateId=g.gate_id, stationId=g.station_id, name=g.name)
+            for g in gates
+        ]
+    )
+
+# ============================================
+# Streams API
+# ============================================
+
 class StreamResponse(BaseModel):
-    id: str
+    streamId: str
+    gateId: str
     name: str
     status: str
 
 class StreamListResponse(BaseModel):
     streams: List[StreamResponse]
 
-@router.get("/streams", response_model=StreamListResponse)
-def get_stream_list() -> StreamListResponse:
-    # 토큰 체크 # TODO 나중에 인증 구현 후 JWT 토큰 유효성 검증으로 대치
+@router.get("/gates/{gateId}/streams", response_model=StreamListResponse)
+def get_gate_streams(gateId: str) -> StreamListResponse:
+    """Get all streams for a specific gate"""
+    # Verify gate exists
+    gate = get_gate_by_id(gateId)
+    if not gate:
+        raise HTTPException(status_code=404, detail=f"Gate {gateId} not found")
     
-    streams = [
-        StreamResponse(id="cam-001", name="Gate-01", status="unknown"),
-        StreamResponse(id="cam-002", name="Gate-02", status="unknown"),
-        StreamResponse(id="cam-003", name="Gate-03", status="unknown"),
-        StreamResponse(id="cam-004", name="Gate-04", status="unknown"),
-    ]
+    streams = get_streams_by_gate(gateId)
+    return StreamListResponse(
+        streams=[
+            StreamResponse(
+                streamId=s.stream_id,
+                gateId=s.gate_id,
+                name=s.name,
+                status=s.status
+            )
+            for s in streams
+        ]
+    )
 
-    return StreamListResponse(streams=streams)
+# ============================================
+# Play Ticket API (kept for backward compatibility)
+# ============================================
 
-"""
-{
-  "streamId": "cam-001",
-  "playTicket": "ptk_abc123",
-  "expiresAt": "2025-12-26T11:30:00+09:00",
-  "whepUrl": "https://media.example.local/whep/cam-001"
-}
-"""
 class PlayTicketResponse(BaseModel):
     streamId: str
     playTicket: str
-    expiresAt: str  # ISO string (지금은 더미)
+    expiresAt: str  # ISO string
     whepUrl: str
 
 @router.post("/streams/{streamId}/play-ticket", response_model=PlayTicketResponse)
 def issue_play_ticket(streamId: str) -> PlayTicketResponse:
+    """Issue a play ticket for a stream"""
+    # Verify stream exists
+    stream = get_stream_by_id(streamId)
+    if not stream:
+        raise HTTPException(status_code=404, detail=f"Stream {streamId} not found")
+    
     expiresAt = (datetime.utcnow() + timedelta(minutes=30)).isoformat() + "Z"
-    playTicket="ptk_abc123" # TODO 나중에 실제 티켓 발급 로직으로 대치
-    whepUrl="https://media.stub.local/whep/" + streamId # TODO 나중에 실제 미디어 서버 URL로 대치
-    return PlayTicketResponse(streamId=streamId, playTicket=playTicket, expiresAt=expiresAt, whepUrl=whepUrl)
+    playTicket = "ptk_abc123"  # TODO: 나중에 실제 티켓 발급 로직으로 대치
+    whepUrl = "https://media.stub.local/whep/" + streamId  # TODO: 나중에 실제 미디어 서버 URL로 대치
+    
+    return PlayTicketResponse(
+        streamId=streamId,
+        playTicket=playTicket,
+        expiresAt=expiresAt,
+        whepUrl=whepUrl
+    )
