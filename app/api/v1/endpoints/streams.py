@@ -12,6 +12,7 @@ from app.mock_data import (
     get_streams_by_gate,
     get_stream_by_id,
 )
+from app.core.config import settings
 
 router = APIRouter(tags=["stations"])
 
@@ -117,9 +118,19 @@ def issue_play_ticket(streamId: str) -> PlayTicketResponse:
     if not stream:
         raise HTTPException(status_code=404, detail=f"Stream {streamId} not found")
     
+    # 티켓 발급 (30분 유효)
     expiresAt = (datetime.utcnow() + timedelta(minutes=30)).isoformat() + "Z"
-    playTicket = "ptk_abc123"  # TODO: 나중에 실제 티켓 발급 로직으로 대치
-    whepUrl = "https://media.stub.local/whep/" + streamId  # TODO: 나중에 실제 미디어 서버 URL로 대치
+    playTicket = secrets.token_urlsafe(32)
+    
+    # MediaMTX WHEP URL 구성
+    # 형식: http://{host}:{port}/{path_prefix}/{streamId}/whep
+    path_prefix = settings.MEDIAMTX_PATH
+    if path_prefix:
+        whep_path = f"{path_prefix}/whep" # TODO streamId를 적용해야함
+    else:
+        whep_path = f"/whep"
+    
+    whepUrl = f"http://{settings.MEDIAMTX_HOST}:{settings.MEDIAMTX_WEBRTC_PORT}/{whep_path}"
     
     return PlayTicketResponse(
         streamId=streamId,
