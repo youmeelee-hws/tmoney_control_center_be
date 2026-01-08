@@ -30,6 +30,7 @@ Thumbs.db
 
 # Logs
 *.log
+logs/mediamtx_errors/*.jsonl
 
 # Testing
 .pytest_cache/

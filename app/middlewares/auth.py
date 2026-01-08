@@ -20,6 +20,8 @@ PUBLIC_PATHS = {
     "/api/v1/openapi.json",
     "/docs",
     "/redoc",
+    "/api/v1/error-logs/mediamtx",  # MediaMTX 오류 로그 (인증 불필요)
+    "/api/v1/error-logs/mediamtx/latest",  # 최근 오류 로그 조회
 }
 
 
